@@ -1,1 +1,22 @@
+pipeline {
+    agent any
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git 'https://github.com/your-repo.git'
+            }
+        }
+        stage('Create Hash') {
+            steps {
+                sh 'sha256sum app.py > hash.txt'
+                archiveArtifacts artifacts: 'hash.txt', fingerprint: true
+            }
+        }
+        stage('Deploy with Ansible') {
+            steps {
+                sh 'ansible-playbook -i inventory.ini deploy.yml'
+            }
+        }
+    }
+}
 
