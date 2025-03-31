@@ -1,6 +1,4 @@
 ---
-
-    # 📌 Copy Gunicorn Service File
     - name: Copy Gunicorn Service File
       template:
         src: gunicorn.service.j2
