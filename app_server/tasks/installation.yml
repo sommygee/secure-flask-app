@@ -27,7 +27,6 @@
     - nginx
     - certbot
     - python3-certbot-nginx
-    - java-17*  # Java for CentOS
   when: ansible_distribution == "CentOS"
 
 - name: Create a virtual environment
