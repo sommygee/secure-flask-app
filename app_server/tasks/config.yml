@@ -71,21 +71,4 @@
         backrefs: yes
       when: mongodb_conf.stat.exists
       notify: Restart MongoDB
-
-  handlers:
-    - name: Restart Nginx
-      service:
-        name: nginx
-        state: restarted
-
-    - name: Restart Gunicorn
-      service:
-        name: gunicorn
-        state: restarted
-        enabled: yes
-
-    - name: Restart MongoDB
-      service:
-        name: mongod
-        state: restarted
-        enabled: yes
+...
