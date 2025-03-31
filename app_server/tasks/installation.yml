@@ -1,5 +1,5 @@
 ---
-#Install system packages( Python, pip,venv,nginx,gunicorn)
+# Install system packages (Python, pip, venv, nginx, gunicorn)
 - name: Install required packages (Ubuntu)
   become: yes
   apt:
@@ -27,12 +27,10 @@
     - nginx
     - certbot
     - python3-certbot-nginx
-    - openjdk-17-jdk 
-  state: present
-  update_cache: yes
+    - openjdk-17-jdk  # Java for CentOS
   when: ansible_distribution == "CentOS"
 
-- name: create a virtual environment
+- name: Create a virtual environment
   command:
     cmd: "python3 -m venv /opt/myapp/venv"
     creates: /opt/myapp/venv
@@ -44,4 +42,4 @@
       - Flask
       - gunicorn
     virtualenv: /opt/myapp/venv
-  when: ansible_distribution in ["Ubuntu","CentOS"]
+  when: ansible_distribution in ["Ubuntu", "CentOS"]
