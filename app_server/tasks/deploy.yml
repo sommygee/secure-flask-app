@@ -19,7 +19,7 @@
     - init_db.js
     - requirements.txt
 
-- name: Create virtual environment if not exists
+- name: Ensure virtual environment exists
   command:
     cmd: python3 -m venv {{ app_dir }}/venv
     creates: "{{ app_dir }}/venv"
@@ -27,13 +27,14 @@
 - name: Install Python dependencies
   pip:
     requirements: "{{ app_dir }}/requirements.txt"
-    executable: pip3
+    executable: "{{ app_dir }}/venv/bin/pip"
     virtualenv: "{{ app_dir }}/venv"
 
+
+# Deploy and Start the Flask Service
 - name: Deploy systemd service for Flask
   template:
     src: flask_app.service.j2
     dest: /etc/systemd/system/flask_app.service
   notify: Restart Flask App
-
 

@@ -25,9 +25,15 @@
       register: gunicorn_version
       ignore_errors: yes
 
+    - name: Check Python Version
+      command: "{{ app_dir }}/venv/bin/python --version"
+      register: python_version
+      ignore_errors: yes
+
     - name: Print Results
       debug:
         msg:
+          - "Python Version: {{ python_version.stdout | default('Not Installed') }}"
           - "Java Version: {{ java_version.stdout | default('Not Installed') }}"
           - "Nginx Status: {{ nginx_status.stdout | default('Error') }}"
           - "Certbot Version: {{ certbot_version.stdout | default('Not Installed') }}"
