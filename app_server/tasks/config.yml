@@ -1,70 +1,97 @@
 ---
-- name: Copy Gunicorn Service File
-  template:
-    src: gunicorn.service.j2
-    dest: /etc/systemd/system/gunicorn.service
-  notify: Restart Gunicorn
-
-- name: Copy Nginx Config
-  template:
-    src: nginx.conf.j2
-    dest: /etc/nginx/nginx.conf
-  notify: Restart Nginx
-
-# New: Certbot SSL Configuration
-- name: Create SSL directories
-  file:
-    path: "{{ item }}"
-    state: directory
-    mode: 0755
-  with_items:
-    - /etc/ssl/private
-    - /etc/ssl/certs
+- name: Configure Flask App Server
+  hosts: app_server
   become: yes
 
-- name: Generate private key
-  openssl_privatekey:
-    path: /etc/ssl/private/selfsigned.key
-    size: 2048
-    mode: 0600
-  become: yes
+  tasks:
+    # 📌 Copy Gunicorn Service File
+    - name: Copy Gunicorn Service File
+      template:
+        src: gunicorn.service.j2
+        dest: /etc/systemd/system/gunicorn.service
+      notify: Restart Gunicorn
 
-- name: Generate a CSR (Certificate Signing Request)
-  openssl_csr:
-    path: /etc/ssl/private/selfsigned.csr
-    privatekey_path: /etc/ssl/private/selfsigned.key
-    common_name: "{{ ansible_default_ipv4.address }}"
-  become: yes
+    # 📌 Copy Nginx Configuration
+    - name: Copy Nginx Configuration (Ubuntu)
+      template:
+        src: nginx.conf.j2
+        dest: /etc/nginx/sites-available/default
+      notify: Restart Nginx
+      when: ansible_distribution == "Ubuntu"
 
-- name: Generate self-signed certificate
-  openssl_certificate:
-    path: /etc/ssl/certs/selfsigned.crt
-    privatekey_path: /etc/ssl/private/selfsigned.key
-    csr_path: /etc/ssl/private/selfsigned.csr
-    provider: selfsigned
-    selfsigned_not_after: "+365d"
-  become: yes
+    - name: Copy Nginx Configuration (CentOS)
+      template:
+        src: nginx.conf.j2
+        dest: /etc/nginx/conf.d/default.conf
+      notify: Restart Nginx
+      when: ansible_distribution == "CentOS"
 
-- name: Set up periodic certificate regeneration
-  cron:
-    name: "Regenerate Self-Signed Certificate"
-    job: "openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/selfsigned.key -out /etc/ssl/certs/selfsigned.crt -subj '/CN={{ ansible_default_ipv4.address }}'"
-    state: present
-    special_time: monthly
-  become: yes
+    # 📌 Create SSL Directories & Certificates
+    - name: Create SSL directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: 0755
+      with_items:
+        - /etc/ssl/private
+        - /etc/ssl/certs
 
+    - name: Generate private key
+      openssl_privatekey:
+        path: /etc/ssl/private/selfsigned.key
+        size: 2048
+        mode: 0600
 
-- name: Ensure MongoDB config file exists
-  stat:
-    path: /etc/mongod.conf
-  register: mongodb_conf
+    - name: Generate a CSR (Certificate Signing Request)
+      openssl_csr:
+        path: /etc/ssl/private/selfsigned.csr
+        privatekey_path: /etc/ssl/private/selfsigned.key
+        common_name: "{{ ansible_default_ipv4.address }}"
 
-- name: Configure MongoDB to allow remote connections
-  become: yes
-  lineinfile:
-    path: /etc/mongod.conf
-    regexp: '^  bindIp: 127\.0\.0\.1'
-    line: '  bindIp: 0.0.0.0'
-    backrefs: yes
-  when: mongodb_conf.stat.exists  # Only run if file exists
-  notify: restart mongodb
+    - name: Generate self-signed certificate
+      openssl_certificate:
+        path: /etc/ssl/certs/selfsigned.crt
+        privatekey_path: /etc/ssl/private/selfsigned.key
+        csr_path: /etc/ssl/private/selfsigned.csr
+        provider: selfsigned
+        selfsigned_not_after: "+365d"
+
+    - name: Set up periodic certificate regeneration
+      cron:
+        name: "Regenerate Self-Signed Certificate"
+        job: "openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/selfsigned.key -out /etc/ssl/certs/selfsigned.crt -subj '/CN={{ ansible_default_ipv4.address }}'"
+        state: present
+        special_time: monthly
+
+    # 📌 Configure MongoDB
+    - name: Ensure MongoDB config file exists
+      stat:
+        path: /etc/mongod.conf
+      register: mongodb_conf
+
+    - name: Configure MongoDB to allow remote connections
+      lineinfile:
+        path: /etc/mongod.conf
+        regexp: '^  bindIp: 127\\.0\\.0\\.1'
+        line: '  bindIp: 0.0.0.0'
+        backrefs: yes
+      when: mongodb_conf.stat.exists
+      notify: Restart MongoDB
+
+  handlers:
+    - name: Restart Nginx
+      service:
+        name: nginx
+        state: restarted
+
+    - name: Restart Gunicorn
+      service:
+        name: gunicorn
+        state: restarted
+        enabled: yes
+
+    - name: Restart MongoDB
+      service:
+        name: mongod
+        state: restarted
+        enabled: yes
