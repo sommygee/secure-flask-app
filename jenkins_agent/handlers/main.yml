@@ -2,6 +2,6 @@
 - name: Restart Jenkins roles/jenkins_agent
   become: yes
   systemd:
-    name: jenkins_agent
+    name: jenkins-agent
     state: restarted
     daemon_reload: yes
