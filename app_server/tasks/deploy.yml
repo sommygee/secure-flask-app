@@ -6,6 +6,7 @@
     owner: "{{ app_user }}"
     group: "{{ app_group }}"
     mode: '0755'
+  # Ensure that the directory path and permissions are appropriate for your environment
 
 - name: Copy application files
   copy:
@@ -18,18 +19,23 @@
     - app.py
     - init_db.js
     - requirements.txt
+  # Add error handling for missing source files
+  ignore_errors: no
 
 - name: Ensure virtual environment exists
   command:
     cmd: python3 -m venv {{ app_dir }}/venv
     creates: "{{ app_dir }}/venv"
+  # Ensure Python3 is installed on the target system
+  # Consider using the `ansible.builtin.pip` module to install virtualenv if not available
 
 - name: Install Python dependencies
   pip:
     requirements: "{{ app_dir }}/requirements.txt"
     executable: "{{ app_dir }}/venv/bin/pip"
     virtualenv: "{{ app_dir }}/venv"
-
+  # Handle cases where requirements.txt is missing or has errors
+  ignore_errors: no
 
 # Deploy and Start the Flask Service
 - name: Deploy systemd service for Flask
@@ -37,4 +43,4 @@
     src: flask_app.service.j2
     dest: /etc/systemd/system/flask_app.service
   notify: Restart Flask App
-
+  
