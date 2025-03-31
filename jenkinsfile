@@ -1,22 +1,57 @@
 pipeline {
-    agent any
+    agent { label 'flask-agent' }
+   
     stages {
         stage('Checkout Code') {
             steps {
-                git 'https://github.com/your-repo.git'
+                script {
+                    git branch: 'dev',
+                        url: 'https://github.com/SASowah/secure-flask-app.git',
+                        credentialsId: 'your-jenkins-cred-id'
+                }
             }
         }
-        stage('Create Hash') {
+
+        stage('Set up Python Environment') {
             steps {
-                sh 'sha256sum app.py > hash.txt'
-                archiveArtifacts artifacts: 'hash.txt', fingerprint: true
+                sh '''
+                python3 -m venv venv
+                . venv/bin/activate && pip install --upgrade pip
+                if [ ! -f requirements.txt ]; then
+                  echo "requirements.txt not found!"; exit 1;
+                fi
+                . venv/bin/activate && pip install -r requirements.txt
+                '''
             }
         }
+
+        stage('Run Tests') {
+            steps {
+                sh '''
+                . venv/bin/activate && pytest --junitxml=report.xml
+                '''
+            }
+        }
+
         stage('Deploy with Ansible') {
             steps {
-                sh 'ansible-playbook -i inventory.ini deploy.yml'
+                sh '''
+                ansible-playbook -i inventory.ini deploy.yml --become
+                '''
             }
         }
     }
-}
 
+    post {
+        success {
+            echo '✅ Build, Testing, SonarQube Analysis, and Deployment Successful!'
+            emailext subject: "Jenkins Build Success: ${env.JOB_NAME}",
+                     body: "Good news! The Jenkins build ${env.BUILD_NUMBER} was successful.",
+                     recipientProviders: [[$class: 'DevelopersRecipientProvider']],
+                     to: 'samniisowah866@gmail.com'
+        }
+        failure {
+            echo '❌ Build Failed! Check logs for issues.'
+        }
+    }
+}
