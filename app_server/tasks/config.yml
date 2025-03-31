@@ -1,9 +1,5 @@
 ---
-- name: Configure Flask App Server
-  hosts: app_server
-  become: yes
 
-  tasks:
     # 📌 Copy Gunicorn Service File
     - name: Copy Gunicorn Service File
       template:
