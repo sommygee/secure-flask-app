@@ -27,6 +27,9 @@
     - nginx
     - certbot
     - python3-certbot-nginx
+    - openjdk-17-jdk 
+  state: present
+  update_cache: yes
   when: ansible_distribution == "CentOS"
 
 - name: create a virtual environment
