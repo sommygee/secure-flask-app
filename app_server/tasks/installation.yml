@@ -1,5 +1,5 @@
 ---
-#Install system packages( Python, pip,venv,nginx,gunicorn)
+# Install system packages (Python, pip, venv, Nginx, Gunicorn)
 - name: Install required packages (Ubuntu)
   become: yes
   apt:
@@ -23,22 +23,21 @@
   loop:
     - python3
     - python3-pip
-    - python3-virtualenv
+    - python3-venv
     - nginx
     - certbot
     - python3-certbot-nginx
   when: ansible_distribution == "CentOS"
 
-- name: create a virtual environment
+- name: Create a virtual environment
   command:
     cmd: "python3 -m venv /opt/myapp/venv"
     creates: /opt/myapp/venv
 
-- name: Install Flask and Gunicorn using python3-pip
+- name: Install Flask and Gunicorn using pip
   become: yes
   pip:
     name:
       - Flask
       - gunicorn
     virtualenv: /opt/myapp/venv
-  when: ansible_distribution in ["Ubuntu","CentOS"]
