@@ -1,13 +1,20 @@
-[Unit]
-Description=Jenkins Agent
-After=network.target
+---
+- name: Install Firewalld and Python Firewall Bindings
+  command: sudo dnf install -y firewalld python3-firewall
+  args:
+    creates: /usr/sbin/firewalld  # Ensures the command runs only if Firewalld isn't installed
+- name: Enable and Start Firewalld
+  become: yes
+  service:
+    name: firewalld
+    enabled: yes
+    state: started
+- name: Ensure Firewalld Default Zone is Set
+  become: yes
+  shell: firewall-cmd --get-default-zone || firewall-cmd --set-default-zone=public
 
-[Service]
-User=jenkins
-Group=jenkins
-ExecStart=/usr/bin/java -jar /opt/jenkins/agent.jar -jnlpUrl http://172.31.30.100:8080/computer/agent-node/slave-agent.jnlp
-Restart=always
-RestartSec=5
 
-[Install]
-WantedBy=multi-user.target
+
+
+
+
