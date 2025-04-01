@@ -1,4 +1,6 @@
 ---
+
+# Ensure app directory exists
 - name: Ensure app directory exists
   file:
     path: "{{ app_dir }}"
@@ -6,11 +8,27 @@
     owner: "{{ app_user }}"
     group: "{{ app_group }}"
     mode: '0755'
-  # Ensure that the directory path and permissions are appropriate for your environment
 
+# Check if source files exist
+- name: Check if source files exist
+  stat:
+    path: "{{ src_dir }}/{{ item }}"
+  loop:
+    - app.py
+    - init_db.js
+    - requirements.txt
+  register: source_files
+
+- name: Fail if any source file is missing
+  fail:
+    msg: "Missing required file: {{ item.item }}"
+  when: not item.stat.exists
+  loop: "{{ source_files.results }}"
+
+# Copy application files
 - name: Copy application files
   copy:
-    src: "{{ playbook_dir }}/../../src/{{ item }}"
+    src: "{{ src_dir }}/{{ item }}"
     dest: "{{ app_dir }}"
     owner: "{{ app_user }}"
     group: "{{ app_group }}"
@@ -19,28 +37,36 @@
     - app.py
     - init_db.js
     - requirements.txt
-  # Add error handling for missing source files
-  ignore_errors: no
 
-- name: Ensure virtual environment exists
-  command:
-    cmd: python3 -m venv {{ app_dir }}/venv
-    creates: "{{ app_dir }}/venv"
-  # Ensure Python3 is installed on the target system
-  # Consider using the `ansible.builtin.pip` module to install virtualenv if not available
+# Set up virtual environment
+- name: Ensure virtual environment directory exists
+  file:
+    path: "{{ app_dir }}/venv"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: '0755'
 
 - name: Install Python dependencies
   pip:
     requirements: "{{ app_dir }}/requirements.txt"
-    executable: "{{ app_dir }}/venv/bin/pip"
     virtualenv: "{{ app_dir }}/venv"
-  # Handle cases where requirements.txt is missing or has errors
-  ignore_errors: no
 
-# Deploy and Start the Flask Service
+# Deploy systemd service for Flask
 - name: Deploy systemd service for Flask
   template:
     src: flask_app.service.j2
     dest: /etc/systemd/system/flask_app.service
   notify: Restart Flask App
-  
+
+# Reload systemd daemon and start the service
+- name: Reload systemd daemon
+  systemd:
+    daemon_reload: yes
+
+- name: Start and enable Flask service
+  systemd:
+    name: flask_app
+    state: started
+    enabled: yes
+

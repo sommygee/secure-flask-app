@@ -1,2 +1,11 @@
 ---
 # vars file for roles/app_server
+  app_dir: "/opt/flask-app"
+  app_user: "flask_user"
+  app_group: "flask_group"
+  src_dir: "{{ playbook_dir }}/../../src"
+  app_verification_dir: "/opt/flask-app/verification"
+  jenkins_artifacts_dir: "/var/lib/jenkins/workspace/artifacts"
+  app_artifact_name: "app.tar.gz"
+  app_log_dir: "/var/log/flask-app"
+  venv_path: "{{ app_dir }}/venv"
