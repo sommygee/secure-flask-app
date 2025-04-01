@@ -25,10 +25,6 @@
     enabled: yes
 
 # Configure MongoDB for security and application use
-- name: Ensure pymongo is installed
-  pip:
-    name: pymongo
-    state: present
 
 - name: Create MongoDB configuration directory
   file:
