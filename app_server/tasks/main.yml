@@ -5,5 +5,5 @@
 - import_tasks: config.yml
 - import_tasks: deploy.yml
 - import_tasks: verify_dependencies.yml
-- import_tasks: verify_artifact.yml
+- import_tasks: verify_artifacts.yml
 ...
