@@ -44,10 +44,3 @@
       - gunicorn
     virtualenv: /opt/myapp/venv
 
-# Configure Nginx
-- name: Start and enable Nginx service
-  become: yes
-  service:
-    name: nginx
-    state: started
-    enabled: yes
