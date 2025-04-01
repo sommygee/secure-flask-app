@@ -1,14 +1,13 @@
 ---
-# Install MongoDB
 - name: Import MongoDB public GPG key
   apt_key:
-    url: https://www.mongodb.org/static/pgp/server-{{ mongodb_version }}.asc
-    state: present
+      url: https://www.mongodb.org/static/pgp/server-6.0.asc
+      state: present   
 
 - name: Add MongoDB repository
   apt_repository:
-    repo: "deb [ arch=amd64 ] {{ mongodb_repo_url }}"
-    state: present
+      repo: "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/6.0 multiverse"
+      state: present    
 
 - name: Update package list
   apt:
