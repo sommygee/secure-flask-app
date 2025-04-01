@@ -9,3 +9,6 @@
   app_artifact_name: "app.tar.gz"
   app_log_dir: "/var/log/flask-app"
   venv_path: "{{ app_dir }}/venv"
+  mongodb_db: "secure_app_db"
+  mongodb_user: "app_user"
+  mongodb_password: "secure_password"  
