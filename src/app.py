@@ -9,7 +9,6 @@ collection = db.messages
 @app.route("/")
 def index():
     messages = collection.find()
-    print("Messages fetched:", messages)
     return render_template("index.html", messages=messages)
 
 if __name__ == "__main__":
