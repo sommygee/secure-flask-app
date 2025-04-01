@@ -60,41 +60,41 @@
    # Configure MongoDB for security and application use
     - name: Ensure pymongo is installed
       pip:
-      name: pymongo
+       name: pymongo
       state: present
 
     - name: Create MongoDB configuration directory
       file:
-      path: "/etc/mongodb"
-      state: directory
+       path: "/etc/mongodb"
+       state: directory
       mode: '0755'
 
     - name: Configure MongoDB to listen on all interfaces
       lineinfile:
-      path: /etc/mongod.conf
-      regexp: '  bindIp:'
-      line: '  bindIp: 0.0.0.0'
-      state: present
+       path: /etc/mongod.conf
+       regexp: '  bindIp:'
+       line: '  bindIp: 0.0.0.0'
+       state: present
       notify: restart mongodb
 
     - name: Enable MongoDB authentication
       blockinfile:
-      path: /etc/mongod.conf
-      block: |
+       path: /etc/mongod.conf
+       block: |
          security:
          authorization: enabled
-      insertafter: '^#security:'
+       insertafter: '^#security:'
       state: present
       notify: restart mongodb
 
     - name: Ensure MongoDB data and log directories exist
       file:
-      path: "{{ item.path }}"
-      state: directory
-      owner: mongodb
-      group: mongodb
-      mode: "{{ item.mode }}"
-      loop:
+       path: "{{ item.path }}"
+       state: directory
+       owner: mongodb
+       group: mongodb
+       mode: "{{ item.mode }}"
+       loop:
        - { path: /var/lib/mongodb, mode: '0755' }
        - { path: /var/log/mongodb, mode: '0750' }
 
@@ -145,20 +145,20 @@
 
     - name: Remove initialization script
       file:
-      path: /tmp/init_mongodb.js
-      state: absent
+       path: /tmp/init_mongodb.js
+       state: absent
       ignore_errors: yes
 
 # Set environment variables for Flask application
     - name: Create environment file directory
       file:
-      path: "/opt/flask-app/env"
-      state: directory
+       path: "/opt/flask-app/env"
+       state: directory
       mode: '0755'
 
     - name: Create MongoDB environment file
       template:
-      src: templates/mongodb.env.j2
-      dest: "/opt/flask-app/env/mongodb.env"
+       src: templates/mongodb.env.j2
+       dest: "/opt/flask-app/env/mongodb.env"
       mode: '0640'
 ...
