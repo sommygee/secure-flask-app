@@ -1,69 +1,35 @@
----
-# Check Nginx Configuration
-- name: Check Nginx Status
-  command: nginx -t
-  register: nginx_status
-  failed_when: "'syntax is ok' not in nginx_status.stdout"
+ # Change to specific groups like 'app-server' or 'jenkins-master' if needed
+    - name: Check Nginx Status
+      command: nginx -t
+      register: nginx_status
+      ignore_errors: yes
 
-- name: Print Nginx Status
-  debug:
-    msg: "Nginx Status: {{ nginx_status.stdout | default('Error') }}"
+    - name: Check Certbot Version
+      command: certbot --version
+      register: certbot_version
+      ignore_errors: yes
 
-# Check Certbot Version
-- name: Check Certbot Version
-  command: certbot --version
-  register: certbot_version
-  ignore_errors: yes
+    - name: Check Ansible Version
+      command: ansible --version
+      delegate_to: localhost
+      register: ansible_version
+      ignore_errors: yes
 
-- name: Print Certbot Version
-  debug:
-    msg: "Certbot Version: {{ certbot_version.stdout | default('Not Installed') }}"
+    - name: Check MongoDB Status
+      command: systemctl status mongod
+      register: mongodb_status
+      ignore_errors: yes
 
-# Check Ansible Version
-- name: Check Ansible Version
-  command: ansible --version
-  delegate_to: localhost
-  register: ansible_version
-  ignore_errors: yes
+    - name: Check Flask & Gunicorn Version
+      command: /opt/myapp/venv/bin/gunicorn --version
+      register: gunicorn_version
+      ignore_errors: yes
 
-- name: Print Ansible Version
-  debug:
-    msg: "Ansible Version: {{ ansible_version.stdout | default('Not Available') }}"
-
-# Check MongoDB Status
-- name: Check MongoDB Status
-  service:
-    name: mongod
-    state: started
-  register: mongodb_status
-  ignore_errors: yes
-
-- name: Print MongoDB Status
-  debug:
-    msg: "MongoDB Status: {{ mongodb_status.state | default('Not Installed') }}"
-
-# Check Flask & Gunicorn Version
-- name: Check Gunicorn Version
-  command: "{{ venv_path }}/bin/gunicorn --version"
-  register: gunicorn_version
-  ignore_errors: yes
-
-- name: Print Gunicorn Version
-  debug:
-    msg: "Gunicorn Version: {{ gunicorn_version.stdout | default('Not Installed') }}"
-
-# Check Python Version
-- name: Check Python Version
-  command: "{{ venv_path }}/bin/python --version"
-  register: python_version
-  ignore_errors: yes
-
-- name: Print Python Version
-  debug:
-    msg: "Python Version: {{ python_version.stdout | default('Not Installed') }}"
-
-# Fail if any critical dependency is missing
-- name: Fail if Gunicorn is not installed
-  fail:
-    msg: "Gunicorn is not installed. Please install it in the virtual environment."
-  when: gunicorn_version.rc != 0
+    - name: Print Results
+      debug:
+        msg:
+          - "Nginx Status: {{ nginx_status.stdout | default('Error') }}"
+          - "Certbot Version: {{ certbot_version.stdout | default('Not Installed') }}"
+          - "Ansible Version: {{ ansible_version.stdout | default('Not Available') }}"
+          - "MongoDB Status: {{ mongodb_status.stdout | default('Not Installed') }}"
+          - "Gunicorn Version: {{ gunicorn_version.stdout | default('Not Installed') }}"

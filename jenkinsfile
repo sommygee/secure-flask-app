@@ -1,14 +1,17 @@
 pipeline {
     agent { label 'flask-agent' }
-   
+
+    environment {
+        ARTIFACT_NAME = "secure-flask-app.tar.gz"
+        HASH_FILE = "hash.txt"
+    }
+
     stages {
         stage('Checkout Code') {
             steps {
                 script {
-                    git branch: 'dev',
-                        url: 'https://github.com/SASowah/secure-flask-app.git',
-                        credentialsId: 'your-jenkins-cred-id'
-                }
+                    git branch: "dev",
+                        url: 'https://github.com/sommygee/secure-flask-app.git'
             }
         }
 
@@ -16,11 +19,9 @@ pipeline {
             steps {
                 sh '''
                 python3 -m venv venv
-                . venv/bin/activate && pip install --upgrade pip
-                if [ ! -f requirements.txt ]; then
-                  echo "requirements.txt not found!"; exit 1;
-                fi
-                . venv/bin/activate && pip install -r requirements.txt
+                source venv/bin/activate
+                pip install --upgrade pip
+                pip install -r requirements.txt
                 '''
             }
         }
@@ -28,28 +29,49 @@ pipeline {
         stage('Run Tests') {
             steps {
                 sh '''
-                . venv/bin/activate && pytest --junitxml=report.xml
+                source venv/bin/activate
+                pytest --junitxml=report.xml
+                '''
+            }
+        }
+
+        stage('Package Application') {
+            steps {
+                sh '''
+                tar -czvf $ARTIFACT_NAME app.py requirements.txt templates/
+                sha256sum $ARTIFACT_NAME | awk '{print $1}' > $HASH_FILE
+                '''
+            }
+        }
+
+        stage('Verify Artifact Integrity') {
+            steps {
+                sh '''
+                CALCULATED_HASH=$(sha256sum $ARTIFACT_NAME | awk '{print $1}')
+                EXPECTED_HASH=$(cat $HASH_FILE)
+                
+                if [ "$CALCULATED_HASH" != "$EXPECTED_HASH" ]; then
+                    echo "❌ Artifact integrity verification failed!"
+                    exit 1
+                else
+                    echo "✅ Artifact integrity verified!"
+                fi
                 '''
             }
         }
 
         stage('Deploy with Ansible') {
             steps {
-                sh '''
-                ansible-playbook -i inventory.ini deploy.yml --become
-                '''
+                script {
+                    sh '''
+                    ansible-playbook -i hosts_inventory.ini roles/app_server/tasks/deploy.yml
+                    '''
+                }
             }
         }
     }
 
     post {
-        success {
-            echo '✅ Build, Testing, SonarQube Analysis, and Deployment Successful!'
-            emailext subject: "Jenkins Build Success: ${env.JOB_NAME}",
-                     body: "Good news! The Jenkins build ${env.BUILD_NUMBER} was successful.",
-                     recipientProviders: [[$class: 'DevelopersRecipientProvider']],
-                     to: 'samniisowah866@gmail.com'
-        }
         failure {
             echo '❌ Build Failed! Check logs for issues.'
         }

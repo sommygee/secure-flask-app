@@ -1,60 +1,50 @@
----
-# Main configuration tasks
 
-# Configure Gunicorn
+---
 - name: Copy Gunicorn Service File
   template:
     src: gunicorn.service.j2
     dest: /etc/systemd/system/gunicorn.service
   notify: Restart Gunicorn
 
-# Configure Nginx
-- name: Copy Nginx Configuration (Ubuntu)
+- name: Copy Nginx Config
   template:
     src: nginx.conf.j2
-    dest: "{{ nginx_config_dir_ubuntu }}/default"
+    dest: /etc/nginx/nginx.conf
   notify: Restart Nginx
-  when: ansible_distribution == "Ubuntu"
 
-- name: Copy Nginx Configuration (CentOS)
-  template:
-    src: nginx.conf.j2
-    dest: "{{ nginx_config_dir_centos }}/default.conf"
-  notify: Restart Nginx
-  when: ansible_distribution == "CentOS"
-
-# Set up SSL certificates
+# New: Certbot SSL Configuration
 - name: Create SSL directories
   file:
     path: "{{ item }}"
     state: directory
     mode: 0755
-  loop:
+  with_items:
     - /etc/ssl/private
     - /etc/ssl/certs
+  become: yes
 
 - name: Generate private key
   openssl_privatekey:
-    path: "{{ ssl_key_path }}"
+    path: /etc/ssl/private/selfsigned.key
     size: 2048
     mode: 0600
-  register: private_key
+  become: yes # This enables privilege escalation
 
 - name: Generate a CSR (Certificate Signing Request)
   openssl_csr:
-    path: "{{ ssl_csr_path }}"
-    privatekey_path: "{{ ssl_key_path }}"
+    path: /etc/ssl/private/selfsigned.csr
+    privatekey_path: /etc/ssl/private/selfsigned.key
     common_name: "{{ ansible_default_ipv4.address }}"
-  when: private_key.changed
+  become: yes # This enables privilege escalation
 
 - name: Generate self-signed certificate
   openssl_certificate:
-    path: "{{ ssl_cert_path }}"
-    privatekey_path: "{{ ssl_key_path }}"
-    csr_path: "{{ ssl_csr_path }}"
+    path: /etc/ssl/certs/selfsigned.crt
+    privatekey_path: /etc/ssl/private/selfsigned.key
+    csr_path: /etc/ssl/private/selfsigned.csr
     provider: selfsigned
     selfsigned_not_after: "+365d"
-  when: private_key.changed
+  become: yes # This enables privilege escalation
 
 - name: Set up periodic certificate regeneration
   cron:
@@ -62,4 +52,20 @@
     job: "openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/selfsigned.key -out /etc/ssl/certs/selfsigned.crt -subj '/CN={{ ansible_default_ipv4.address }}'"
     state: present
     special_time: monthly
+  become: yes # This enables privilege escalation
 
+
+- name: Ensure MongoDB config file exists
+  stat:
+    path: /etc/mongod.conf
+  register: mongodb_conf
+
+- name: Configure MongoDB to allow remote connections
+  become: yes
+  lineinfile:
+    path: /etc/mongod.conf
+    regexp: '^  bindIp: 127\.0\.0\.1'
+    line: '  bindIp: 0.0.0.0'
+    backrefs: yes
+  when: mongodb_conf.stat.exists  # Only run if file exists
+  notify: restart mongodb

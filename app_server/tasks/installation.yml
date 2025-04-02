@@ -12,6 +12,7 @@
     - nginx
     - certbot
     - python3-certbot-nginx
+  when: ansible_distribution == "Ubuntu"
 
 - name: Install additional packages for CentOS
   become: yes
@@ -43,4 +44,5 @@
       - Flask
       - gunicorn
     virtualenv: /opt/myapp/venv
+  when: ansible_distribution == ["Ubuntu","CentOS"]
 
