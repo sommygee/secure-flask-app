@@ -1,6 +1,6 @@
 
 pipeline {
-    agent { label 'flask-agent' }
+    agent any
 
     environment {
         ARTIFACT_NAME = "secure-flask-app.tar.gz"
