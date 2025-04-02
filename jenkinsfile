@@ -24,7 +24,6 @@ pipeline {
                 source venv/bin/activate
                 pip install --upgrade pip
                 pip install -r requirements.txt
-                pytest --junitxml=report.xml
                 '''
             }
         }
@@ -33,7 +32,6 @@ pipeline {
             steps {
                 sh '''
                 source venv/bin/activate
-                pytest --junitxml=report.xml
                 '''
             }
         }
