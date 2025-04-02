@@ -12,7 +12,7 @@ pipeline {
             steps {
                 script {
                     git branch: "main",
-                        url: 'https://github.com/SASowah/secure-flask-app.git'
+                       url:  'https://github.com/sommygee/secure-flask-app.git'
                 }
             }
         }
