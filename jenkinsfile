@@ -1,3 +1,4 @@
+
 pipeline {
     agent { label 'flask-agent' }
 
@@ -10,8 +11,9 @@ pipeline {
         stage('Checkout Code') {
             steps {
                 script {
-                    git branch: "dev",
-                        url: 'https://github.com/sommygee/secure-flask-app.git'
+                    git branch: "main",
+                        url: 'https://github.com/SASowah/secure-flask-app.git'
+                }
             }
         }
 
