@@ -1,20 +1,36 @@
 ---
-- name: Install Firewalld and Python Firewall Bindings
-  command: sudo dnf install -y firewalld python3-firewall
+- name: Install Python 3
+  command: dnf install -y python3
   args:
-    creates: /usr/sbin/firewalld  # Ensures the command runs only if Firewalld isn't installed
+    creates: /usr/bin/python3
+
+- name: Install pip
+  command: dnf install -y python3-pip
+
+- name: Install virtualenv
+  become: yes
+  command: dnf install -y python3-virtualenv
+  
+- name: Install Firewalld and Python firewall bindings
+  become: yes
+  command: dnf install -y firewalld python3-firewall
+  args:
+    creates: /usr/sbin/firewalld  # Runs only if Firewalld isn't installed
+
 - name: Enable and Start Firewalld
   become: yes
   service:
     name: firewalld
     enabled: yes
     state: started
-- name: Ensure Firewalld Default Zone is Set
+
+- name: Check current default firewall zone
   become: yes
-  shell: firewall-cmd --get-default-zone || firewall-cmd --set-default-zone=public
+  command: firewall-cmd --get-default-zone
+  register: current_zone
+  changed_when: false  # No "changed" status for this check
 
-
-
-
-
-
+- name: Set default firewall zone to public
+  become: yes
+  command: firewall-cmd --set-default-zone=public
+  when: current_zone.stdout != 'public'  # Idempotently set zone

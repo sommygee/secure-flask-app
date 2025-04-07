@@ -1,8 +1,13 @@
 ---
-# Install system packages
-- name: Install required packages
+- name: Update and upgrade system packages
+  apt:
+    update_cache: yes
+    upgrade: dist
+
+#Install system packages( Python, pip,venv,nginx,gunicorn)
+- name: Install required packages (Ubuntu)
   become: yes
-  package:
+  apt:
     name: "{{ item }}"
     state: present
   loop:
@@ -11,38 +16,35 @@
     - python3-venv
     - nginx
     - certbot
+    - gunicorn
     - python3-certbot-nginx
   when: ansible_distribution == "Ubuntu"
 
-- name: Install additional packages for CentOS
-  become: yes
-  package:
-    name: python3-virtualenv
+- name: Install required packages (RHEL/CentOS)
+  become: yes # This enables privilege escalation
+  yum:
+    name: "{{ item }}"
     state: present
+  loop:
+    - python3
+    - python3-pip
+    - python3-virtualenv
+    - nginx
+    - certbot
+    - gunicorn
+    - python3-certbot-nginx
   when: ansible_distribution == "CentOS"
 
-# Set up virtual environment
-- name: Ensure virtual environment directory exists
-  become: yes
-  file:
-    path: /opt/myapp/venv
-    state: directory
-    mode: '0755'
-
-- name: Create a virtual environment
-  become: yes
+- name: create a virtual environment
   command:
-    cmd: "python3 -m venv /opt/myapp/venv"
-  args:
-    creates: /opt/myapp/venv/bin/activate
+    cmd: "python3 -m venv {{ app_dir }}/venv"
+    creates: "{{ app_dir }}/venv"
 
-# Install Flask and Gunicorn
-- name: Install Flask and Gunicorn using pip
-  become: yes
+- name: Install Flask and Gunicorn using python3-pip
+  become: yes # This enables privilege escalation
   pip:
     name:
       - Flask
       - gunicorn
-    virtualenv: /opt/myapp/venv
-  when: ansible_distribution == ["Ubuntu","CentOS"]
-
+    virtualenv: "{{ app_dir }}/venv"
+  when: ansible_distribution in ["Ubuntu","CentOS"]

@@ -1,15 +1,21 @@
 ---
 # handlers file for roles/app_server
+
+- name: Test Nginx configuration
+  command: nginx -t
+  become: yes
+  failed_when: "'test is successful' not in result.stdout"
+
+- name: Restart Nginx to apply changes
+  systemd:
+    name: nginx
+    state: restarted
+    daemon_reload: yes
+  become: yes
+
 - name: Restart Gunicorn
   systemd:
     name: gunicorn
-    state: restarted
-    enabled: yes
-    daemon_reload: yes
-
-- name: Restart Nginx
-  systemd:
-    name: nginx
     state: restarted
     enabled: yes
     daemon_reload: yes
@@ -24,5 +30,5 @@
   systemd:
     name: flask_app
     state: restarted
-    enabled: yes 
-...   
+    enabled: yes
+    daemon_reload: yes

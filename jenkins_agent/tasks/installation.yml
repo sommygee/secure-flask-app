@@ -3,6 +3,16 @@
   become: yes
   command: dnf5 install -y java-17-openjdk java-17-openjdk-devel
 
+- name: Install Ansible
+  become: yes
+  command: dnf install -y ansible  # For RHEL/CentOS
+  args:
+    creates: /usr/bin/ansible-playbook  # Ensure idempotency
+
+- name: Install Git
+  become: yes
+  command: dnf5 install -y git
+
 - name: Create Jenkins User
   become: yes
   user:

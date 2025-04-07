@@ -1,19 +1,71 @@
+---
+- name: Import MongoDB public GPG key
+  apt_key:
+    url: https://www.mongodb.org/static/pgp/server-6.0.asc
+    state: present
+
+- name: Add MongoDB repository
+  apt_repository:
+    repo: "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/6.0 multiverse"
+    state: present
+
+- name: Update package list
+  apt:
+    update_cache: yes
+
 - name: Install MongoDB
   apt:
-    name: mongodb
+    name: 
+      - mongodb-org
+      - mongodb-mongosh
     state: present
 
 - name: Start and enable MongoDB service
-  service:
+  systemd:
     name: mongod
     state: started
     enabled: yes
 
-- name: Insert starter records
-  mongo_db:
-    login_host: localhost
-    database: myapp
-    collection: users
-    documents:
-      - { name: "Alice", role: "admin" }
-      - { name: "Bob", role: "user" }
+- name: Wait for MongoDB to become available
+  wait_for:
+    port: 27017
+    delay: 10
+    timeout: 60
+
+- name: Check for mongosh
+  stat:
+    path: /usr/bin/mongosh
+  register: mongosh_check
+
+- name: Fail if mongosh is missing
+  fail:
+    msg: "mongosh shell not found! Install mongosh to proceed."
+  when: not mongosh_check.stat.exists
+
+- name: Copy MongoDB seed script
+  copy:
+    src: "{{ playbook_dir }}/src/init.db.js"  # Correct source path
+    dest: "{{ app_dir }}/init.db.js"          # Destination: /opt/flask_app/init.db.js
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: "0644"
+    
+
+- name: Execute seed script
+  command: /usr/bin/mongosh {{ app_dir }}/init.db.js
+  register: seed_result
+  retries: 3
+  delay: 10
+  changed_when: "'Data inserted successfully' in seed_result.stdout"
+  failed_when: 
+    - seed_result.rc != 0
+    - "'Error inserting data' in seed_result.stdout"
+
+- name: Verify document count
+  command: /usr/bin/mongosh securedb --eval "db.messages.countDocuments()"
+  register: doc_count
+  changed_when: false
+
+- name: Show document count
+  debug:
+    msg: "MongoDB documents: {{ doc_count.stdout }}"
