@@ -1,4 +1,3 @@
-
 ---
 - name: Allow Jenkins Agent  TCP port 50000 for firewalld
   firewalld:
